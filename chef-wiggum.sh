@@ -10,6 +10,14 @@ ldap_useradmin=manager
 ldap_password=ldap_password_here
 ldap_defaultuid="uid=chefwiggum75n,ou=internes,o=tiers"
 ldap_groupfilter="(|(objectclass=groupofnames)(objectclass=groupofurls))"
+ldap_grouplist="/tmp/hell_dap_groups.txt"
+
+# SI UN FICHIER DE CONF CONTIENT LES CONSTANTES, ON LE RECUPERE
+
+if [ -f chef-wiggum.conf ] ; then
+source chef-wiggum.conf
+fi
+
 
 title="Chef Wiggum 1.0"
 help+="\n\nVous avez demandé la police ? Ne quittez pas !\n\nBesoin de savoir quels sont les groupes LDAP d'un agent ? Le chef mène l'enquête !"
@@ -46,8 +54,8 @@ if [ "$ldap_password" = "" ] ; then abort_panel; exit;fi
 
 # ON RECUPERE LA LISTE DES GROUPES DE TOUT L'ANNUAIRE
 # L'EXTRACTION EST LONGUE DONC ON PROPOSE DE REUTILISER LE FICHIER DE TRAVAIL SI IL EST PRESENT
-if [ -f "/tmp/hell_dap_groups.txt" ] ; then
-	hellinfo=$(ls -lh /tmp/hell_dap_groups.txt)
+if [ -f "$ldap_grouplist" ] ; then
+	hellinfo=$(ls -lh "$ldap_grouplist")
 	if (whiptail --yesno "Le listing des groupes existe déjà :\n\n$hellinfo\n\nSouhaitez-vous le regénérer ?" 18 90 --fb --title "(?) $title (?)" 3>&1 1>&2 2>&3)
 	then rebuild=1; else rebuild=0; fi
 else  rebuild=1;fi
@@ -58,15 +66,19 @@ clear
 echo "VEUILLEZ PATIENTER (environ 20 secondes si tout va bien)...."
 #echo  "Veuillez patienter, l'extraction des groupes LDAP se savoure...."
 # ldif-wrap=no évite que ldapsearch formate la réponse avec une largeur de colonne par défaut sinon un pert la fin des dn trop longs
- ldapsearch  -D cn=$ldap_useradmin,o=$branche -w $ldap_password -b o=$branche -o ldif-wrap=no -LLL "$ldap_groupfilter" | grep "dn: " > /tmp/hell_dap_groups.txt
+ ldapsearch  -D cn=$ldap_useradmin,o=$branche -w $ldap_password -b o=$branche -o ldif-wrap=no -LLL "$ldap_groupfilter" | grep "dn: " > "$ldap_grouplist"
 
 fi
+
+# POUR EVITER D'ETRE SUDO ET QUE TOUT LE MONDE PUISSE UTILISER L'EXPORT SANS PBS DE DROITS
+
+chmod a+rw "$ldap_grouplist"
 
 # CONTROLE DE L'EXTRACTION DES GROUPES
 
 nbgroup=$(cat /tmp/hell_dap_groups.txt | wc -l)
 if [ "$nbgroup" = 0 ] ; then 
-	whiptail --title "/!\\ $title /!\\" --msgbox "Aucun groupe ?! Vérifiez le fichier \n/tmp/hell_dap_groups.txt \npuis le ldapsearch en ligne 55 du code.\nAbandon de la recherche !" 18 60 --fb
+	whiptail --title "/!\\ $title /!\\" --msgbox "Aucun groupe ?! Vérifiez le fichier \n$ldap_grouplist \npuis le ldapsearch en ligne 55 du code.\nAbandon de la recherche !" 18 60 --fb
 	exit
 fi
 
@@ -92,7 +104,7 @@ do
 	((c++))
 fi
 echo -n "."
-done < /tmp/hell_dap_groups.txt 
+done < "$ldap_grouplist" 
 
 echo -e "\n$liste"
 
