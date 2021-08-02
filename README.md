@@ -10,3 +10,16 @@ Son fonctionnement est :
 Le résultat apparaît à l'écran simplement.
 
 L'extraction des groupes pouvant être longue, si celle-ci a déjà été faite (présence du fichier temporaire), le script propose de le réutiliser afin de gagner du # temps et de ne pas charger le serveur.
+
+Mise en oeuvre :
+
+Récupérer le script ( git clone https://github.com/FranckAudebrand/chefwiggum )
+Editez les lignes 9 à 12 :
+
+ldap_useradmin=manager
+ldap_password=ldap_password_here
+ldap_defaultuid="uid=chefwiggum75n,ou=internes,o=tiers"
+ldap_groupfilter="(|(objectclass=groupofnames)(objectclass=groupofurls))"
+
+avec vos paramètres. 
+La ligne ldap_groupfilter est utilisée pour lister les groupes statiques (groupofnames) ET les groupes dynamiques (groupofurls) : Adaptez la requête LDAP à vo besoin si nécessaire.
